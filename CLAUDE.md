@@ -14,7 +14,13 @@ Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertainin
   - **trailmakers_docs.lua**: Complete API type definitions with detailed documentation
   - **trailmakers_spawnables.txt**: List of all spawnable prefab names (used extensively for effects)
   - **trailmakers_audio.txt**: List of all available audio event names (used for authentic sound effects)
-  - Sample mod files for reference
+  - **examples/**: Sample mod implementations organized by type:
+    - **blockmod/**: Basic block spawning example
+    - **documentationmod/**: API documentation demonstration
+    - **kickmod/**: Player management example  
+    - **spawnmod/**: Simple object spawning
+    - **spawnmodadv/**: Advanced spawning with custom assets (models, textures)
+    - **trackmakermod/**: Track/level creation example
 
 ## Key Components
 

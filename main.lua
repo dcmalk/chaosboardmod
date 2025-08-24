@@ -1,5 +1,4 @@
 -- Chaosboard - Ultimate chaos and entertainment!
--- Expanded from MegadrillSeat with tons of fun effects
 -- Uses only the public tm.* API
 
 -- =============================================================================
@@ -92,7 +91,7 @@ local function useAbility(playerId, ability, func)
     
     if not success then
         tm.playerUI.SetUIValue(playerId, "status", "Error: " .. tostring(error))
-        tm.os.Log("Soundboard error in " .. ability .. ": " .. tostring(error))
+        tm.os.Log("Chaosboard error in " .. ability .. ": " .. tostring(error))
         return false
     end
     
@@ -122,9 +121,8 @@ local function safeAudio(position, audioName, fallback, volume)
 end
 
 -- =============================================================================
--- PHASE 1: ENHANCED MEGADRILL PULSE
+-- DESTRUCTION EFFECTS
 -- =============================================================================
-
 
 local function createMegadrillPulse(playerId)
     local playerPos = tm.players.GetPlayerTransform(playerId).GetPosition()
@@ -205,9 +203,7 @@ local function createMegadrillPulse(playerId)
 end
 
 
--- =============================================================================
--- PHASE 3: DESTRUCTION EFFECTS  
--- =============================================================================
+-- Destruction effects continued
 
 local function barrelRain(playerId)
     local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
@@ -309,7 +305,7 @@ local function gravityBomb(playerId)
 end
 
 -- =============================================================================
--- PHASE 4: CREATURE SPAWNS
+-- CREATURE SPAWNS
 -- =============================================================================
 
 local function whaleRain(playerId)
@@ -380,7 +376,7 @@ local function sheepInvasion(playerId)
 end
 
 -- =============================================================================
--- PHASE 5: PHYSICS CHAOS
+-- PHYSICS CHAOS
 -- =============================================================================
 
 local function slowMotion(playerId)
@@ -444,7 +440,7 @@ local function structureLauncher(playerId)
 end
 
 -- =============================================================================
--- PHASE 6: ENVIRONMENTAL EFFECTS
+-- ENVIRONMENTAL EFFECTS
 -- =============================================================================
 
 local function teleportParty(playerId)
@@ -520,14 +516,7 @@ local function emergencyTeleport(playerId)
     setStatus(playerId, "🆘 EMERGENCY TELEPORT! Rescued from underground")
 end
 
--- =============================================================================
--- ENVIRONMENTAL EFFECT – ENERGY-SHIELD BUBBLE
--- =============================================================================
-local SHIELD_PREFAB   = "PFB_VikingHarbour_Shield_04" -- Try different shield color
-local SHIELD_SCALE    = 12                     -- diameter ≈ 12 m (visible from inside)
-local SHIELD_DURATION = 25                     -- seconds before auto-despawn
-local SHIELD_KNOCK_CD = 0.25                   -- seconds between pulses
-local SHIELD_IMPULSE  = 25000                  -- outward force
+-- Shield spawning functions
 
 -- Generic shield spawning function
 local function spawnShieldWithSize(playerId, scale, sizeName)
@@ -597,12 +586,6 @@ local function spawnShieldBubble(playerId)
     spawnMediumShield(playerId)
 end
 
--- =============================================================================
--- AUTO-CLEANUP SYSTEM FOR PULSE SHIELDS
--- =============================================================================
-
--- Note: cleanupExpiredPulseShields function is defined earlier in the file
--- and is called on every ability use as a fallback cleanup method
 
 -- =============================================================================
 -- UI SETUP
