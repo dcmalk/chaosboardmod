@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chaos Mod is a comprehensive Trailmakers game mod that provides 16+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a complete chaos interface with destructive effects, creature spawns, physics manipulation, and environmental control.
+Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a complete chaos interface with destructive effects, creature spawns, physics manipulation, and environmental control.
 
 ## Architecture
 
 - **main.lua**: Complete chaos mod implementation (~500 lines) using the Trailmakers modding API (tm.*). Features modular effect functions, universal cooldown system, error handling with pcall, and organized UI categories.
-- **info.json**: Updated mod metadata reflecting the new Chaos Mod functionality and feature set.
+- **info.json**: Updated mod metadata reflecting the new Chaosboard functionality and feature set.
 - **docs/**: Reference documentation for the Trailmakers modding API, including:
   - **trailmakers_docs.lua**: Complete API type definitions with detailed documentation
   - **trailmakers_spawnables.txt**: List of all spawnable prefab names (used extensively for effects)

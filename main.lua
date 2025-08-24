@@ -1,4 +1,4 @@
--- Chaos Mod - Ultimate chaos and entertainment!
+-- Chaosboard - Ultimate chaos and entertainment!
 -- Expanded from MegadrillSeat with tons of fun effects
 -- Uses only the public tm.* API
 
@@ -612,7 +612,7 @@ local function onPlayerJoined(p)
     local pid = p.playerId
     
     -- Title and status
-    tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOS MOD === 🎛️")
+    tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOSBOARD === 🎛️")
     tm.playerUI.AddUIText(pid, "status", "Ready for chaos!", nil)
     
     -- === DESTRUCTION ROW ===
