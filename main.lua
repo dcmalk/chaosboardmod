@@ -231,28 +231,41 @@ local function fireworksShow(playerId)
     local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
     local explosions = 0
     
-    for i = 1, 25 do
-        local offset = tm.vector3.Create(
-            math.random(-40, 40),
-            math.random(10, 35),
-            math.random(-40, 40)
+    -- Play launch sounds from ground level for authenticity
+    for i = 1, 8 do
+        local launchPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y,
+            pos.z + math.random(-15, 15)
         )
-        local explosionPos = tm.vector3.Create(
-            pos.x + offset.x,
-            pos.y + offset.y, 
-            pos.z + offset.z
+        safeAudio(launchPos, AUDIO.FIREWORKS_SHOOT, nil, 2.0)
+    end
+    
+    -- Create firework bursts directly in the sky
+    for i = 1, 35 do
+        local burstPos = tm.vector3.Create(
+            pos.x + math.random(-30, 30),
+            pos.y + math.random(20, 40),  -- Medium altitude bursts
+            pos.z + math.random(-30, 30)
         )
         
-        -- Mix of different explosion sizes
-        local prefab = (math.random() > 0.5) and PREFABS.EXPLOSION_LARGE or PREFABS.EXPLOSION_MEDIUM
-        if safeSpawn(explosionPos, prefab) then
+        -- Varied explosion sizes for realistic firework display
+        local prefab = PREFABS.EXPLOSION_LARGE
+        if math.random() > 0.8 then
+            prefab = PREFABS.EXPLOSION_XL  -- 20% chance for big finale bursts
+        elseif math.random() > 0.6 then
+            prefab = PREFABS.EXPLOSION_MEDIUM  -- 20% chance for smaller bursts
+        end
+        
+        if safeSpawn(burstPos, prefab) then
             explosions = explosions + 1
         end
     end
     
-    safeAudio(pos, AUDIO.FIREWORKS, AUDIO.FIREWORKS_SHOOT, 3.0)
-    safeAudio(pos, AUDIO.CONFETTI, nil, 2.0)
-    setStatus(playerId, "🎆 FIREWORKS SHOW! " .. explosions .. " explosions")
+    -- Celebration finale
+    safeAudio(pos, AUDIO.FIREWORKS, AUDIO.CONFETTI, 3.0)
+    
+    setStatus(playerId, "🎆 FIREWORKS SHOW! " .. explosions .. " sky bursts lighting up the night!")
 end
 
 local function mineField(playerId)
@@ -503,7 +516,7 @@ end
 -- Safety function to teleport player back to surface if they go underground
 local function emergencyTeleport(playerId)
     local playerPos = tm.players.GetPlayerTransform(playerId).GetPosition()
-    local safePos = tm.vector3.Create(playerPos.x, 50, playerPos.z)  -- 50 units above ground
+    local safePos = tm.vector3.Create(playerPos.x, playerPos.y + 250, playerPos.z)  -- 250 units above current position
     
     tm.players.SetSpawnPoint(
         playerId,
@@ -513,7 +526,7 @@ local function emergencyTeleport(playerId)
     )
     
     tm.players.TeleportPlayerToSpawnPoint(playerId, "emergency_surface", true)
-    setStatus(playerId, "🆘 EMERGENCY TELEPORT! Rescued from underground")
+    setStatus(playerId, "🆘 EMERGENCY TELEPORT! Lifted " .. math.floor(250) .. " units up to safety")
 end
 
 -- Shield spawning functions
@@ -601,10 +614,6 @@ local function onPlayerJoined(p)
     -- === DESTRUCTION ROW ===
     tm.playerUI.AddUILabel(pid, "destruction_label", "💥 DESTRUCTION:")
     
-    tm.playerUI.AddUIButton(pid, "megapulse", "🛡️ Energy Shockwave", function()
-        useAbility(pid, "megapulse", createMegadrillPulse)
-    end)
-    
     tm.playerUI.AddUIButton(pid, "barrels", "🛢️ Barrel Rain", function()
         useAbility(pid, "barrels", barrelRain)
     end)
@@ -619,6 +628,10 @@ local function onPlayerJoined(p)
     
     tm.playerUI.AddUIButton(pid, "gravbomb", "🌍 Gravity Bomb", function()
         useAbility(pid, "gravbomb", gravityBomb)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "launcher", "🚀 Launch All Vehicles", function()
+        useAbility(pid, "launcher", structureLauncher)
     end)
     
     -- === CREATURES ROW ===
@@ -655,26 +668,22 @@ local function onPlayerJoined(p)
         useAbility(pid, "flipgrav", reverseGravity)
     end)
     
-    tm.playerUI.AddUIButton(pid, "launcher", "🚀 Launch All Vehicles", function()
-        useAbility(pid, "launcher", structureLauncher)
-    end)
+    -- === SHIELDS ROW ===
+    tm.playerUI.AddUILabel(pid, "shields_label", "🛡️ SHIELDS:")
     
-    -- === ENVIRONMENTAL ROW ===
-    tm.playerUI.AddUILabel(pid, "env_label", "🌀 ENVIRONMENT:")
-    
-    tm.playerUI.AddUIButton(pid, "teleport", "🌀 Teleport Party", function()
-        useAbility(pid, "teleport", teleportParty)
+    tm.playerUI.AddUIButton(pid, "megapulse", "🛡️ Ground Shield", function()
+        useAbility(pid, "megapulse", createMegadrillPulse)
     end)
 
-    tm.playerUI.AddUIButton(pid, "shield_small", "🛡️ Small Shield", function()
+    tm.playerUI.AddUIButton(pid, "shield_small", "🛡️ Small Sky Shield", function()
         useAbility(pid, "shield_small", spawnSmallShield)
     end)
     
-    tm.playerUI.AddUIButton(pid, "shield_medium", "🛡️ Medium Shield", function()
+    tm.playerUI.AddUIButton(pid, "shield_medium", "🛡️ Medium Sky Shield", function()
         useAbility(pid, "shield_medium", spawnMediumShield)
     end)
     
-    tm.playerUI.AddUIButton(pid, "shield_large", "🛡️ Large Shield", function()
+    tm.playerUI.AddUIButton(pid, "shield_large", "🛡️ Large Sky Shield", function()
         useAbility(pid, "shield_large", spawnLargeShield)
     end)   
     
@@ -691,6 +700,10 @@ local function onPlayerJoined(p)
     
     tm.playerUI.AddUIButton(pid, "reset", "🔄 Reset Physics", function()
         useAbility(pid, "reset", resetPhysics)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "teleport", "🌀 Teleport Party", function()
+        useAbility(pid, "teleport", teleportParty)
     end)
     
     tm.playerUI.AddUIButton(pid, "emergency", "🆘 Emergency Teleport", function()
