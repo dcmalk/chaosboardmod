@@ -26,7 +26,10 @@ local AUDIO = {
     EXPLOSION = "Ending_Explosion_Stringer",
     TELEPORT = "LvlObj_TeleportStation_activate",
     WIND = "Amb_Basicwind_start",
-    LANDMINE = "LvlObj_LandmineExplosion_explosion"
+    LANDMINE = "LvlObj_LandmineExplosion_explosion",
+    CHIRPO_TALK = "AVI_NPC_Intercom_Chirpo_Civillian_Default",
+    CHIRPO_TYPE = "NPC_Intercom_Typing_AIChirpo",
+    CHIRPO_AI = "AVI_NPC_Intercom_Chirpo_AI"
 }
 
 -- Spawnable prefabs
@@ -43,9 +46,45 @@ local PREFABS = {
     SHEEP = "PFB_Sheep",
     LANDMINE = "PFB_Mine",
     ENERGY_SHIELD = "PFB_Red_EnergyShield",
-    SPACE_RING_1 = "PFB_SpaceRing_01",
-    SPACE_RING_2 = "PFB_SpaceRing_02",
-    SPACE_RING_3 = "PFB_SpaceRing_03"
+    -- New cool effects
+    POISON_CLOUD = "PFB_PoisonCloud_Explosion",
+    FLAMETHROWER = "PFB_FlameThrowerEffect",
+    DISPENSABLE_SNOWBALL = "PFB_DispensableSnowball",
+    DISPENSABLE_BOULDER = "PFB_DispensableBoulder",
+    CRYSTAL_CLUSTER_BLUE = "PFB_CrystalClusterBlue",
+    CRYSTAL_CLUSTER_PINK = "PFB_CrystalClusterPink",
+    CRYSTAL_SMALL_BLUE = "PFB_CrystalSmall_blue",
+    CRYSTAL_SMALL_PINK = "PFB_CrystalSmall_pink",
+    RING_OF_FIRE = "PFB_RingofFire",
+    BONES_GIANT_RIBCAGE = "PFB_Bones_GiantRibcage",
+    BONES_SKELETON = "PFB_Bones_Skeleton_01",
+    BONE_RING = "PFB_BoneRing",
+    GIANT_BONE_1 = "PFB_GiantBone_1",
+    GIANT_BONE_2 = "PFB_GiantBone_2",
+    GIANT_BONE_3 = "PFB_GiantBone_3",
+    IRON_CRATE = "PFB_IronCrate",
+    WOOD_CRATE = "PFB_WoodCrate",
+    POWER_CORE_CRATE = "PFB_PowerCoreCrate",
+    SPINNER = "PFB_Spinner",
+    HAMMER = "PFB_Hammer",
+    PUSHER = "PFB_Pusher",
+    GIANT_PEARL = "PFB_GiantPearl",
+    WINDMILL = "PFB_BigWindMill",
+    WINDMILL3 = "PFB_Windmill3",
+    RACING_CHECKPOINT = "PFB_RacingCheckPoint",
+    BLOCK_HUNT = "PFB_BlockHunt",
+    LAVA = "PFB_Lava_Underwater",
+    MOVE_PUZZLE_START = "PFB_MovePuzzleStart",
+    -- Chirpo variants
+    CHIRPO_BLUE = "PFB_Chirpo_Blue",
+    CHIRPO_DARK = "PFB_Chirpo_Dark",
+    CHIRPO_LIGHTGREEN = "PFB_Chirpo_LightGreen",
+    CHIRPO_ORANGE = "PFB_Chirpo_Orange",
+    CHIRPO_PURPLE = "PFB_Chirpo_Purple",
+    CHIRPO_WHITE = "PFB_Chirpo_White",
+    CHIRPO_CAPTAIN = "PFB_Chirpo_CaptainSpeck",
+    CHIRPO_STATIONARY = "PFB_Chirpo_Stationary",
+    TIMELINE_POD = "PFB_TimelinePodLandingClimbIsland"
 }
 
 -- =============================================================================
@@ -54,6 +93,7 @@ local PREFABS = {
 
 local cooldowns = {}  -- [playerId_ability] = timestamp
 local pulseShields = {}  -- Track pulse shields for auto-cleanup
+local playerPages = {}  -- Track which page each player is on (1 or 2)
 
 local function now()
     return tm.os.GetRealtimeSinceStartup()
@@ -376,7 +416,7 @@ local function sheepInvasion(playerId)
     for i = 1, 15 do
         local sheepPos = tm.vector3.Create(
             pos.x + math.random(-12, 12),
-            pos.y + 1,
+            pos.y,  -- At player's ground level  
             pos.z + math.random(-12, 12)
         )
         
@@ -488,10 +528,20 @@ local function teleportParty(playerId)
 end
 
 local function cleanupAll(playerId)
-    tm.physics.ClearAllSpawns()
-    -- Also clear our shield tracking
+    -- Clear our shield tracking first
     pulseShields = {}
-    setStatus(playerId, "🧹 CLEANUP COMPLETE! All spawned objects removed")
+    
+    -- Use safer cleanup approach
+    local success, error = pcall(function()
+        tm.physics.ClearAllSpawns()
+    end)
+    
+    if success then
+        setStatus(playerId, "🧹 CLEANUP COMPLETE! All spawned objects removed")
+    else
+        setStatus(playerId, "🧹 CLEANUP FAILED! Error: " .. tostring(error))
+        tm.os.Log("Cleanup error: " .. tostring(error))
+    end
 end
 
 local function cleanupShieldsOnly(playerId)
@@ -527,6 +577,862 @@ local function emergencyTeleport(playerId)
     
     tm.players.TeleportPlayerToSpawnPoint(playerId, "emergency_surface", true)
     setStatus(playerId, "🆘 EMERGENCY TELEPORT! Lifted " .. math.floor(250) .. " units up to safety")
+end
+
+
+local function barrelFortress(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local barrels = 0
+    
+    -- Create a square fortress wall pattern around player
+    local wallDistance = 6  -- Further from player for stability
+    local wallHeight = 3    -- 3 levels high for proper fortress walls
+    local barrelSpacing = 3 -- More space between barrels
+    
+    -- Create 4 walls of a square fortress
+    for wall = 1, 4 do
+        local wallLength = 5  -- 5 barrels per wall (fewer but more stable)
+        for length = 0, wallLength - 1 do
+            for height = 0, wallHeight - 1 do
+                local barrelPos
+                
+                if wall == 1 then  -- North wall
+                    barrelPos = tm.vector3.Create(pos.x + (length - 2) * barrelSpacing, pos.y + 1 + height * 3, pos.z + wallDistance)
+                elseif wall == 2 then  -- East wall
+                    barrelPos = tm.vector3.Create(pos.x + wallDistance, pos.y + 1 + height * 3, pos.z + (length - 2) * barrelSpacing)
+                elseif wall == 3 then  -- South wall
+                    barrelPos = tm.vector3.Create(pos.x + (length - 2) * barrelSpacing, pos.y + 1 + height * 3, pos.z - wallDistance)
+                else  -- West wall
+                    barrelPos = tm.vector3.Create(pos.x - wallDistance, pos.y + 1 + height * 3, pos.z + (length - 2) * barrelSpacing)
+                end
+                
+                -- Mix of regular and explosive barrels (20% explosive for safety)
+                local prefab = (math.random() > 0.8) and PREFABS.BARREL_EXPLOSIVE or PREFABS.BARREL
+                if safeSpawn(barrelPos, prefab) then
+                    barrels = barrels + 1
+                end
+            end
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, nil, 2.0)
+    setStatus(playerId, "🏰 BARREL FORTRESS! " .. barrels .. " barrels form protective walls around you!")
+end
+
+local function ringLightShow(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local lights = 0
+    
+    -- Create energy shield patterns for light show effect
+    for pattern = 1, 3 do
+        local height = pattern * 8
+        local radius = pattern * 6
+        
+        -- Create circular patterns with energy shields
+        for i = 0, 5 do
+            local angle = (i / 6) * 2 * math.pi
+            local lightPos = tm.vector3.Create(
+                pos.x + math.cos(angle) * radius,
+                pos.y + height,
+                pos.z + math.sin(angle) * radius
+            )
+            
+            -- Use energy shields for light effects
+            if safeSpawn(lightPos, PREFABS.ENERGY_SHIELD) then
+                lights = lights + 1
+            end
+        end
+    end
+    
+    -- Add central pillar of light
+    for i = 1, 6 do
+        local pillarPos = tm.vector3.Create(
+            pos.x,
+            pos.y + i * 4,
+            pos.z
+        )
+        if safeSpawn(pillarPos, PREFABS.ENERGY_SHIELD) then
+            lights = lights + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.CONFETTI, AUDIO.SHIELD_ACTIVATE, 3.0)
+    setStatus(playerId, "💫 RING LIGHT SHOW! " .. lights .. " energy rings create a dazzling display!")
+end
+
+local function rainbowTrail(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local trails = 0
+    local allPlayers = tm.players.CurrentPlayers()
+    
+    -- Create rainbow trails from triggerer to each other player
+    for _, targetPlayer in pairs(allPlayers) do
+        if targetPlayer.playerId ~= playerId then
+            local targetPos = tm.players.GetPlayerTransform(targetPlayer.playerId).GetPosition()
+            
+            -- Calculate direction and distance
+            local dx = targetPos.x - pos.x
+            local dy = targetPos.y - pos.y
+            local dz = targetPos.z - pos.z
+            local distance = math.sqrt(dx*dx + dy*dy + dz*dz)
+            
+            -- Create trail of shields with different types for "rainbow" effect
+            local steps = math.min(math.floor(distance / 4), 15)  -- Max 15 shields per trail
+            for step = 1, steps do
+                local progress = step / steps
+                local trailPos = tm.vector3.Create(
+                    pos.x + dx * progress,
+                    pos.y + dy * progress + math.sin(progress * math.pi) * 3,  -- Arc effect
+                    pos.z + dz * progress
+                )
+                
+                -- Create trail effect with energy shields
+                if safeSpawn(trailPos, PREFABS.ENERGY_SHIELD) then
+                    trails = trails + 1
+                end
+            end
+        end
+    end
+    
+    -- If no other players, create a decorative trail pattern
+    if trails == 0 then
+        for i = 1, 20 do
+            local trailPos = tm.vector3.Create(
+                pos.x + math.cos(i * 0.3) * i * 2,
+                pos.y + math.sin(i * 0.5) * 4,
+                pos.z + math.sin(i * 0.3) * i * 2
+            )
+            if safeSpawn(trailPos, PREFABS.ENERGY_SHIELD) then
+                trails = trails + 1
+            end
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
+    setStatus(playerId, "⚡ ENERGY TRAIL! " .. trails .. " energy shields create glowing paths!")
+end
+
+local function crystalGarden(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local crystals = 0
+    
+    -- Create geometric crystal formations
+    -- Formation 1: Central spire
+    for height = 1, 8 do
+        local spirePos = tm.vector3.Create(
+            pos.x,
+            pos.y + height * 3,
+            pos.z
+        )
+        if safeSpawn(spirePos, PREFABS.ENERGY_SHIELD) then
+            crystals = crystals + 1
+        end
+    end
+    
+    -- Formation 2: Hexagonal crystal clusters at different heights
+    for cluster = 1, 3 do
+        local clusterHeight = cluster * 6
+        local clusterRadius = cluster * 8
+        
+        for i = 0, 5 do  -- 6 points of hexagon
+            local angle = i * math.pi / 3
+            
+            -- Main crystal points
+            local crystalPos = tm.vector3.Create(
+                pos.x + math.cos(angle) * clusterRadius,
+                pos.y + clusterHeight,
+                pos.z + math.sin(angle) * clusterRadius
+            )
+            if safeSpawn(crystalPos, PREFABS.ENERGY_SHIELD) then
+                crystals = crystals + 1
+            end
+            
+            -- Smaller crystals between main points
+            local betweenAngle = angle + math.pi / 6
+            local betweenPos = tm.vector3.Create(
+                pos.x + math.cos(betweenAngle) * clusterRadius * 0.7,
+                pos.y + clusterHeight - 2,
+                pos.z + math.sin(betweenAngle) * clusterRadius * 0.7
+            )
+            if safeSpawn(betweenPos, PREFABS.ENERGY_SHIELD) then
+                crystals = crystals + 1
+            end
+        end
+    end
+    
+    -- Formation 3: Ground-level crystal scattered around base
+    for i = 1, 12 do
+        local scatterPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y + math.random(1, 4),
+            pos.z + math.random(-15, 15)
+        )
+        if safeSpawn(scatterPos, PREFABS.ENERGY_SHIELD) then
+            crystals = crystals + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
+    setStatus(playerId, "💎 CRYSTAL GARDEN! " .. crystals .. " energy crystals form a magnificent garden!")
+end
+
+local function halfSphereTop(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local spheres = 0
+    
+    -- Create a perfect sphere using spherical coordinates
+    local centerX = pos.x
+    local centerY = pos.y + 15  -- 15 blocks up
+    local centerZ = pos.z
+    local radius = 8
+    
+    -- Generate sphere using spherical coordinates for perfect shape
+    -- Phi (vertical angle): 0 to pi (top to bottom)
+    -- Theta (horizontal angle): 0 to 2*pi (around)
+    local phiSteps = 12  -- Number of vertical divisions
+    local thetaSteps = 16  -- Number of horizontal divisions
+    
+    for phiIndex = 0, phiSteps do
+        local phi = (phiIndex / phiSteps) * math.pi  -- 0 to pi
+        
+        -- Skip poles to avoid clustering
+        if phiIndex > 0 and phiIndex < phiSteps then
+            for thetaIndex = 0, thetaSteps - 1 do
+                local theta = (thetaIndex / thetaSteps) * 2 * math.pi  -- 0 to 2*pi
+                
+                -- Convert spherical to cartesian coordinates
+                local x = radius * math.sin(phi) * math.cos(theta)
+                local y = radius * math.cos(phi)
+                local z = radius * math.sin(phi) * math.sin(theta)
+                
+                local spherePos = tm.vector3.Create(
+                    centerX + x,
+                    centerY + y,
+                    centerZ + z
+                )
+                
+                if safeSpawn(spherePos, PREFABS.ENERGY_SHIELD) then
+                    spheres = spheres + 1
+                end
+                
+                -- Safety limit
+                if spheres >= 80 then
+                    break
+                end
+            end
+        end
+        
+        if spheres >= 80 then
+            break
+        end
+    end
+    
+    -- Add poles manually for perfect sphere completion
+    if spheres < 80 then
+        -- Top pole
+        local topPole = tm.vector3.Create(centerX, centerY + radius, centerZ)
+        if safeSpawn(topPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+        
+        -- Bottom pole
+        local bottomPole = tm.vector3.Create(centerX, centerY - radius, centerZ)
+        if safeSpawn(bottomPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
+    setStatus(playerId, "🌙 TOP HALF-SPHERE! " .. spheres .. " shields form a dome above!")
+end
+
+local function shieldTrap(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local spheres = 0
+    
+    -- Create a perfect shield trap using spherical coordinates
+    local centerX = pos.x
+    local centerY = pos.y  -- Ground level
+    local centerZ = pos.z
+    local radius = 12  -- Larger radius to account for shield size
+    
+    -- Generate complete sphere using spherical coordinates
+    -- Accounting for shield object size - fewer, more spaced points
+    -- Phi (vertical angle): 0 to pi (top to bottom)
+    -- Theta (horizontal angle): 0 to 2*pi (around)
+    local phiSteps = 8   -- Fewer divisions to prevent overlap
+    local thetaSteps = 10 -- Fewer divisions to prevent overlap
+    
+    for phiIndex = 0, phiSteps do
+        local phi = (phiIndex / phiSteps) * math.pi  -- 0 to pi
+        
+        -- Skip poles to avoid clustering - handle them separately
+        if phiIndex > 0 and phiIndex < phiSteps then
+            for thetaIndex = 0, thetaSteps - 1 do
+                local theta = (thetaIndex / thetaSteps) * 2 * math.pi  -- 0 to 2*pi
+                
+                -- Convert spherical to cartesian coordinates
+                local x = radius * math.sin(phi) * math.cos(theta)
+                local y = radius * math.cos(phi)
+                local z = radius * math.sin(phi) * math.sin(theta)
+                
+                local spherePos = tm.vector3.Create(
+                    centerX + x,
+                    centerY + y,
+                    centerZ + z
+                )
+                
+                if safeSpawn(spherePos, PREFABS.ENERGY_SHIELD) then
+                    spheres = spheres + 1
+                end
+                
+                -- Safety limit
+                if spheres >= 50 then
+                    break
+                end
+            end
+        end
+        
+        if spheres >= 50 then
+            break
+        end
+    end
+    
+    -- Add both poles manually for perfect sphere completion
+    if spheres < 50 then
+        -- Top pole
+        local topPole = tm.vector3.Create(centerX, centerY + radius, centerZ)
+        if safeSpawn(topPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+        
+        -- Bottom pole
+        local bottomPole = tm.vector3.Create(centerX, centerY - radius, centerZ)
+        if safeSpawn(bottomPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
+    setStatus(playerId, "🕳️ SHIELD TRAP! " .. spheres .. " shields form a spherical trap around you!")
+end
+
+-- =============================================================================
+-- NEW CHAOS EFFECTS
+-- =============================================================================
+
+local function poisonRain(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local clouds = 0
+    
+    for i = 1, 15 do
+        local cloudPos = tm.vector3.Create(
+            pos.x + math.random(-20, 20),
+            pos.y + math.random(15, 25),
+            pos.z + math.random(-20, 20)
+        )
+        
+        if safeSpawn(cloudPos, PREFABS.POISON_CLOUD) then
+            clouds = clouds + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.EXPLOSION, nil, 2.0)
+    setStatus(playerId, "☠️ POISON RAIN! " .. clouds .. " toxic clouds descend from above!")
+end
+
+local function snowballFight(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local snowballs = 0
+    
+    for i = 1, 20 do  -- Reduced from 30 to 20
+        local snowPos = tm.vector3.Create(
+            pos.x + math.random(-25, 25),
+            pos.y + math.random(20, 35),
+            pos.z + math.random(-25, 25)
+        )
+        
+        if safeSpawn(snowPos, PREFABS.DISPENSABLE_SNOWBALL) then
+            snowballs = snowballs + 1
+        end
+        
+        -- Safety limit
+        if snowballs >= 20 then
+            break
+        end
+    end
+    
+    safeAudio(pos, AUDIO.WIND, nil, 2.0)
+    setStatus(playerId, "❄️ SNOWBALL FIGHT! " .. snowballs .. " snowballs ready for battle!")
+end
+
+local function crystalCavern(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local crystals = 0
+    
+    -- Large crystal clusters
+    for i = 1, 8 do
+        local clusterPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y + math.random(2, 12),
+            pos.z + math.random(-15, 15)
+        )
+        
+        local clusterType = (math.random() > 0.5) and PREFABS.CRYSTAL_CLUSTER_BLUE or PREFABS.CRYSTAL_CLUSTER_PINK
+        if safeSpawn(clusterPos, clusterType) then
+            crystals = crystals + 1
+        end
+    end
+    
+    -- Small crystals scattered around
+    for i = 1, 20 do
+        local smallPos = tm.vector3.Create(
+            pos.x + math.random(-20, 20),
+            pos.y + math.random(1, 8),
+            pos.z + math.random(-20, 20)
+        )
+        
+        local smallType = (math.random() > 0.5) and PREFABS.CRYSTAL_SMALL_BLUE or PREFABS.CRYSTAL_SMALL_PINK
+        if safeSpawn(smallPos, smallType) then
+            crystals = crystals + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.CONFETTI, 2.5)
+    setStatus(playerId, "💎 CRYSTAL CAVERN! " .. crystals .. " beautiful crystals emerge from the ground!")
+end
+
+local function ringOfFire(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local rings = 0
+    
+    -- Create multiple rings at different heights and distances
+    for ring = 1, 5 do
+        local ringRadius = ring * 8
+        local ringHeight = ring * 3
+        
+        local ringPos = tm.vector3.Create(
+            pos.x,
+            pos.y + ringHeight,
+            pos.z
+        )
+        
+        if safeSpawn(ringPos, PREFABS.RING_OF_FIRE) then
+            rings = rings + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.EXPLOSION, AUDIO.FIREWORKS, 3.0)
+    setStatus(playerId, "🔥 RING OF FIRE! " .. rings .. " blazing rings surround the area!")
+end
+
+local function boneGraveyard(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local bones = 0
+    
+    -- Giant ribcages
+    for i = 1, 3 do
+        local ribPos = tm.vector3.Create(
+            pos.x + math.random(-20, 20),
+            pos.y + 2,
+            pos.z + math.random(-20, 20)
+        )
+        
+        if safeSpawn(ribPos, PREFABS.BONES_GIANT_RIBCAGE) then
+            bones = bones + 1
+        end
+    end
+    
+    -- Skeletons
+    for i = 1, 5 do
+        local skelPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y + 1,
+            pos.z + math.random(-15, 15)
+        )
+        
+        if safeSpawn(skelPos, PREFABS.BONES_SKELETON) then
+            bones = bones + 1
+        end
+    end
+    
+    -- Giant bones scattered around
+    local boneTypes = {PREFABS.GIANT_BONE_1, PREFABS.GIANT_BONE_2, PREFABS.GIANT_BONE_3}
+    for i = 1, 10 do
+        local bonePos = tm.vector3.Create(
+            pos.x + math.random(-25, 25),
+            pos.y + math.random(1, 5),
+            pos.z + math.random(-25, 25)
+        )
+        
+        local boneType = boneTypes[math.random(1, #boneTypes)]
+        if safeSpawn(bonePos, boneType) then
+            bones = bones + 1
+        end
+    end
+    
+    -- Bone rings for spooky effect
+    for i = 1, 3 do
+        local ringPos = tm.vector3.Create(
+            pos.x + math.random(-12, 12),
+            pos.y + math.random(5, 10),
+            pos.z + math.random(-12, 12)
+        )
+        
+        if safeSpawn(ringPos, PREFABS.BONE_RING) then
+            bones = bones + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.LANDMINE, nil, 2.0)
+    setStatus(playerId, "💀 BONE GRAVEYARD! " .. bones .. " ancient bones rise from the earth!")
+end
+
+local function boulderAvalanche(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local boulders = 0
+    
+    for i = 1, 20 do
+        local boulderPos = tm.vector3.Create(
+            pos.x + math.random(-30, 30),
+            pos.y + math.random(25, 40),
+            pos.z + math.random(-30, 30)
+        )
+        
+        if safeSpawn(boulderPos, PREFABS.DISPENSABLE_BOULDER) then
+            boulders = boulders + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.EXPLOSION, AUDIO.WIND, 3.0)
+    setStatus(playerId, "🪨 BOULDER AVALANCHE! " .. boulders .. " massive boulders tumble down!")
+end
+
+local function magneticChaos(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local objects = 0
+    
+    -- All the chaos objects to spawn
+    local chaosObjects = {
+        PREFABS.IRON_CRATE,
+        PREFABS.WOOD_CRATE,
+        PREFABS.POWER_CORE_CRATE,
+        PREFABS.WINDMILL,
+        PREFABS.WINDMILL3,
+        PREFABS.RACING_CHECKPOINT,
+        PREFABS.BLOCK_HUNT,
+        PREFABS.LAVA
+    }
+    
+    -- Spawn various chaos objects
+    for i = 1, 20 do
+        local objectPos = tm.vector3.Create(
+            pos.x + math.random(-20, 20),
+            pos.y + math.random(2, 10),
+            pos.z + math.random(-20, 20)
+        )
+        
+        -- Pick random chaos object
+        local objectType = chaosObjects[math.random(1, #chaosObjects)]
+        if safeSpawn(objectPos, objectType) then
+            objects = objects + 1
+        end
+        
+        -- Safety limit
+        if objects >= 20 then
+            break
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_PULSE, AUDIO.EXPLOSION, 2.5)
+    setStatus(playerId, "🌪️ TOTAL CHAOS! " .. objects .. " random objects create complete mayhem!")
+end
+
+local function chaosTrap(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local traps = 0
+    
+    -- Spinners
+    for i = 1, 8 do
+        local spinPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y + 2,
+            pos.z + math.random(-15, 15)
+        )
+        
+        if safeSpawn(spinPos, PREFABS.SPINNER) then
+            traps = traps + 1
+        end
+    end
+    
+    -- Hammers
+    for i = 1, 5 do
+        local hammerPos = tm.vector3.Create(
+            pos.x + math.random(-12, 12),
+            pos.y + 3,
+            pos.z + math.random(-12, 12)
+        )
+        
+        if safeSpawn(hammerPos, PREFABS.HAMMER) then
+            traps = traps + 1
+        end
+    end
+    
+    -- Pushers
+    for i = 1, 6 do
+        local pushPos = tm.vector3.Create(
+            pos.x + math.random(-18, 18),
+            pos.y + 1,
+            pos.z + math.random(-18, 18)
+        )
+        
+        if safeSpawn(pushPos, PREFABS.PUSHER) then
+            traps = traps + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.MEGADRILL_ALT, nil, 2.5)
+    setStatus(playerId, "🎪 CHAOS TRAP! " .. traps .. " mechanical traps activate around you!")
+end
+
+local function ringShockwave(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local rings = 0
+    
+    -- Create expanding ring shockwave effect
+    for radius = 5, 25, 5 do  -- Rings at radius 5, 10, 15, 20, 25
+        local ringPoints = radius * 2  -- More points for larger rings
+        
+        for i = 0, ringPoints - 1 do
+            local angle = (i / ringPoints) * 2 * math.pi
+            local ringPos = tm.vector3.Create(
+                pos.x + math.cos(angle) * radius,
+                pos.y + 2,  -- Ground level
+                pos.z + math.sin(angle) * radius
+            )
+            
+            if safeSpawn(ringPos, PREFABS.MOVE_PUZZLE_START) then
+                rings = rings + 1
+            end
+            
+            -- Safety limit
+            if rings >= 50 then
+                break
+            end
+        end
+        
+        if rings >= 50 then
+            break
+        end
+    end
+    
+    safeAudio(pos, AUDIO.MEGADRILL_PULSE, AUDIO.WAVE_RIPPLE, 3.0)
+    setStatus(playerId, "💥 RING SHOCKWAVE! " .. rings .. " expanding rings ripple outward!")
+end
+
+-- =============================================================================
+-- NEW CUSTOM EFFECTS
+-- =============================================================================
+
+local function chirpoArmy(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local chirpos = 0
+    
+    -- Array of all Chirpo color variants
+    local chirpoTypes = {
+        PREFABS.CHIRPO_BLUE,
+        PREFABS.CHIRPO_DARK,
+        PREFABS.CHIRPO_LIGHTGREEN,
+        PREFABS.CHIRPO_ORANGE,
+        PREFABS.CHIRPO_PURPLE,
+        PREFABS.CHIRPO_WHITE,
+        PREFABS.CHIRPO_CAPTAIN  -- Special captain chirpo
+    }
+    
+    -- Create a massive army of colorful Chirpos on the ground
+    for i = 1, 30 do
+        local chirpoPos = tm.vector3.Create(
+            pos.x + math.random(-25, 25),
+            pos.y,  -- At player's ground level
+            pos.z + math.random(-25, 25)
+        )
+        
+        -- Pick random Chirpo color, but favor Captain Speck (10% chance)
+        local chirpoType
+        if math.random() > 0.9 then
+            chirpoType = PREFABS.CHIRPO_CAPTAIN  -- Special captain chirpo
+        else
+            chirpoType = chirpoTypes[math.random(1, #chirpoTypes - 1)]  -- Regular colors (exclude captain from random selection)
+        end
+        
+        if safeSpawn(chirpoPos, chirpoType) then
+            chirpos = chirpos + 1
+        end
+        
+        -- Safety limit
+        if chirpos >= 30 then
+            break
+        end
+    end
+    
+    -- Play multiple Chirpo sounds for authentic army effect
+    safeAudio(pos, AUDIO.CHIRPO_TALK, AUDIO.CHIRPO_AI, 2.5)
+    safeAudio(pos, AUDIO.CHIRPO_TYPE, nil, 1.5)
+    
+    setStatus(playerId, "🐤 CHIRPO ARMY! " .. chirpos .. " colorful Chirpos assemble on the battlefield!")
+end
+
+local function flamethrowerInferno(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local fires = 0
+    
+    -- Use only Ring of Fire for proper flat ground-level fire effects
+    for i = 1, 20 do
+        local firePos = tm.vector3.Create(
+            pos.x + math.random(-25, 25),
+            pos.y + 1,
+            pos.z + math.random(-25, 25)
+        )
+        
+        if safeSpawn(firePos, PREFABS.RING_OF_FIRE) then
+            fires = fires + 1
+        end
+    end
+    
+    -- Add some explosions for dramatic fire bursts
+    for i = 1, 10 do
+        local burstPos = tm.vector3.Create(
+            pos.x + math.random(-15, 15),
+            pos.y + math.random(2, 6),
+            pos.z + math.random(-15, 15)
+        )
+        
+        if safeSpawn(burstPos, PREFABS.EXPLOSION_LARGE) then
+            fires = fires + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.EXPLOSION, AUDIO.FIREWORKS, 3.0)
+    setStatus(playerId, "🔥 FIRE INFERNO! " .. fires .. " fire effects deployed!")
+end
+
+local function timelinePodLanding(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local pods = 0
+    
+    -- Spawn a single Timeline Pod on the ground near the player
+    local podPos = tm.vector3.Create(
+        pos.x + math.random(-10, 10),
+        pos.y,  -- At player's ground level
+        pos.z + math.random(-10, 10)
+    )
+    
+    if safeSpawn(podPos, PREFABS.TIMELINE_POD) then
+        pods = pods + 1
+    end
+    
+    safeAudio(pos, AUDIO.TELEPORT, AUDIO.EXPLOSION, 2.5)
+    
+    if pods > 0 then
+        setStatus(playerId, "🛸 TIMELINE POD! A mysterious pod has landed nearby!")
+    else
+        setStatus(playerId, "🛸 TIMELINE POD! Pod failed to spawn")
+    end
+end
+
+local function megaShieldTrap(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local spheres = 0
+    
+    -- EXACT COPY of original Shield Trap code - ONLY change radius and make it taller
+    local centerX = pos.x
+    local centerY = pos.y -20
+    local centerZ = pos.z
+    local radius = 60  -- TRULY MEGA! 5x bigger than original (12)
+    
+    -- Generate complete sphere using spherical coordinates
+    -- Accounting for shield object size - fewer, more spaced points
+    -- Phi (vertical angle): 0 to pi (top to bottom)
+    -- Theta (horizontal angle): 0 to 2*pi (around)
+    local phiSteps = 16   -- Fewer divisions to prevent overlap
+    local thetaSteps = 20 -- Fewer divisions to prevent overlap
+    
+    for phiIndex = 0, phiSteps do
+        local phi = (phiIndex / phiSteps) * math.pi  -- 0 to pi
+        
+        -- Skip poles to avoid clustering - handle them separately
+        if phiIndex > 0 and phiIndex < phiSteps then
+            for thetaIndex = 0, thetaSteps - 1 do
+                local theta = (thetaIndex / thetaSteps) * 2 * math.pi  -- 0 to 2*pi
+                
+                -- Convert spherical to cartesian coordinates
+                local x = radius * math.sin(phi) * math.cos(theta)
+                local y = radius * math.cos(phi)
+                local z = radius * math.sin(phi) * math.sin(theta)
+                
+                local spherePos = tm.vector3.Create(
+                    centerX + x,
+                    centerY + y,
+                    centerZ + z
+                )
+                
+                if safeSpawn(spherePos, PREFABS.ENERGY_SHIELD) then
+                    spheres = spheres + 1
+                end
+                
+                -- Safety limit
+                if spheres >= 100 then
+                    break
+                end
+            end
+        end
+        
+        if spheres >= 100 then
+            break
+        end
+    end
+    
+    -- Add both poles manually for perfect sphere completion
+    if spheres < 100 then
+        -- Top pole
+        local topPole = tm.vector3.Create(centerX, centerY + radius, centerZ)
+        if safeSpawn(topPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+        
+        -- Bottom pole
+        local bottomPole = tm.vector3.Create(centerX, centerY - radius, centerZ)
+        if safeSpawn(bottomPole, PREFABS.ENERGY_SHIELD) then
+            spheres = spheres + 1
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
+    setStatus(playerId, "🌐 MEGA TRAP! " .. spheres .. " shields deployed!")
+end
+
+local function stationaryChirpo(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local chirpos = 0
+    
+    -- Spawn a single Stationary Chirpo on the ground near the player
+    local chirpoPos = tm.vector3.Create(
+        pos.x + math.random(-8, 8),
+        pos.y,  -- At player's ground level
+        pos.z + math.random(-8, 8)
+    )
+    
+    if safeSpawn(chirpoPos, PREFABS.CHIRPO_STATIONARY) then
+        chirpos = chirpos + 1
+    end
+    
+    safeAudio(pos, AUDIO.CHIRPO_TALK, AUDIO.CHIRPO_TYPE, 2.0)
+    
+    if chirpos > 0 then
+        setStatus(playerId, "🤖 STATIONARY CHIRPO! A helpful Chirpo unit has been deployed!")
+    else
+        setStatus(playerId, "🤖 STATIONARY CHIRPO! Chirpo failed to spawn")
+    end
 end
 
 -- Shield spawning functions
@@ -601,11 +1507,28 @@ end
 
 
 -- =============================================================================
--- UI SETUP
+-- PAGE SYSTEM
 -- =============================================================================
 
-local function onPlayerJoined(p)
-    local pid = p.playerId
+-- Forward declarations
+local buildPage1UI, buildPage2UI
+
+local function switchToPage(playerId, pageNumber)
+    playerPages[playerId] = pageNumber
+    tm.playerUI.ClearUI(playerId)
+    
+    -- Rebuild UI for the requested page
+    if pageNumber == 1 then
+        buildPage1UI(playerId)
+    else
+        buildPage2UI(playerId)
+    end
+    
+    setStatus(playerId, "📖 Switched to Page " .. pageNumber)
+end
+
+buildPage1UI = function(playerId)
+    local pid = playerId
     
     -- Title and status
     tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOSBOARD === 🎛️")
@@ -616,6 +1539,10 @@ local function onPlayerJoined(p)
     
     tm.playerUI.AddUIButton(pid, "barrels", "🛢️ Barrel Rain", function()
         useAbility(pid, "barrels", barrelRain)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "barrel_fortress", "🏰 Barrel Fortress", function()
+        useAbility(pid, "barrel_fortress", barrelFortress)
     end)
     
     tm.playerUI.AddUIButton(pid, "fireworks", "🎆 Fireworks Show", function()
@@ -649,6 +1576,18 @@ local function onPlayerJoined(p)
         useAbility(pid, "sheep", sheepInvasion)
     end)
     
+    tm.playerUI.AddUIButton(pid, "chirpo_army", "🐤 Chirpo Army", function()
+        useAbility(pid, "chirpo_army", chirpoArmy)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "timeline_pod", "🛸 Timeline Pod Landing", function()
+        useAbility(pid, "timeline_pod", timelinePodLanding)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "stationary_chirpo", "🤖 Stationary Chirpo", function()
+        useAbility(pid, "stationary_chirpo", stationaryChirpo)
+    end)
+    
     -- === PHYSICS ROW ===
     tm.playerUI.AddUILabel(pid, "physics_label", "⚡ PHYSICS:")
     
@@ -668,13 +1607,31 @@ local function onPlayerJoined(p)
         useAbility(pid, "flipgrav", reverseGravity)
     end)
     
+    tm.playerUI.AddUIButton(pid, "reset", "🔄 Reset Physics", function()
+        useAbility(pid, "reset", resetPhysics)
+    end)
+    
+    -- Page navigation at bottom
+    tm.playerUI.AddUILabel(pid, "page_nav", "📖 PAGE 1 / 2")
+    tm.playerUI.AddUIButton(pid, "next_page", ">> Next Page", function()
+        switchToPage(pid, 2)
+    end)
+end
+
+buildPage2UI = function(playerId)
+    local pid = playerId
+    
+    -- Title and status
+    tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOSBOARD === 🎛️")
+    tm.playerUI.AddUIText(pid, "status", "Ready for chaos!", nil)
+    
     -- === SHIELDS ROW ===
     tm.playerUI.AddUILabel(pid, "shields_label", "🛡️ SHIELDS:")
     
     tm.playerUI.AddUIButton(pid, "megapulse", "🛡️ Ground Shield", function()
         useAbility(pid, "megapulse", createMegadrillPulse)
     end)
-
+    
     tm.playerUI.AddUIButton(pid, "shield_small", "🛡️ Small Sky Shield", function()
         useAbility(pid, "shield_small", spawnSmallShield)
     end)
@@ -685,7 +1642,74 @@ local function onPlayerJoined(p)
     
     tm.playerUI.AddUIButton(pid, "shield_large", "🛡️ Large Sky Shield", function()
         useAbility(pid, "shield_large", spawnLargeShield)
-    end)   
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "ring_show", "💫 Ring Light Show", function()
+        useAbility(pid, "ring_show", ringLightShow)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "rainbow_trail", "⚡ Energy Trail", function()
+        useAbility(pid, "rainbow_trail", rainbowTrail)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "crystal_garden", "💎 Crystal Garden", function()
+        useAbility(pid, "crystal_garden", crystalGarden)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "half_sphere_top", "🌙 Top Half-Sphere", function()
+        useAbility(pid, "half_sphere_top", halfSphereTop)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "shield_trap", "🕳️ Shield Trap", function()
+        useAbility(pid, "shield_trap", shieldTrap)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "mega_shield_trap", "🌐 Mega Shield Trap", function()
+        useAbility(pid, "mega_shield_trap", megaShieldTrap)
+    end)
+    
+    -- === CHAOS EFFECTS ROW ===
+    tm.playerUI.AddUILabel(pid, "chaos_label", "🌪️ CHAOS EFFECTS:")
+    
+    tm.playerUI.AddUIButton(pid, "poison_rain", "☠️ Poison Rain", function()
+        useAbility(pid, "poison_rain", poisonRain)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "snowball_fight", "❄️ Snowball Fight", function()
+        useAbility(pid, "snowball_fight", snowballFight)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "crystal_cavern", "💎 Crystal Cavern", function()
+        useAbility(pid, "crystal_cavern", crystalCavern)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "ring_of_fire", "🔥 Ring of Fire", function()
+        useAbility(pid, "ring_of_fire", ringOfFire)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "bone_graveyard", "💀 Bone Graveyard", function()
+        useAbility(pid, "bone_graveyard", boneGraveyard)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "boulder_avalanche", "🪨 Boulder Avalanche", function()
+        useAbility(pid, "boulder_avalanche", boulderAvalanche)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "magnetic_chaos", "🌪️ Total Chaos", function()
+        useAbility(pid, "magnetic_chaos", magneticChaos)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "chaos_trap", "🎪 Chaos Trap", function()
+        useAbility(pid, "chaos_trap", chaosTrap)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "ring_shockwave", "💥 Ring Shockwave", function()
+        useAbility(pid, "ring_shockwave", ringShockwave)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "flamethrower_inferno", "🔥 Fire Inferno", function()
+        useAbility(pid, "flamethrower_inferno", flamethrowerInferno)
+    end)
     
     -- === CONTROL ROW ===
     tm.playerUI.AddUILabel(pid, "control_label", "🔧 CONTROLS:")
@@ -698,10 +1722,6 @@ local function onPlayerJoined(p)
         useAbility(pid, "cleanup_shields", cleanupShieldsOnly)
     end)
     
-    tm.playerUI.AddUIButton(pid, "reset", "🔄 Reset Physics", function()
-        useAbility(pid, "reset", resetPhysics)
-    end)
-    
     tm.playerUI.AddUIButton(pid, "teleport", "🌀 Teleport Party", function()
         useAbility(pid, "teleport", teleportParty)
     end)
@@ -710,6 +1730,25 @@ local function onPlayerJoined(p)
         useAbility(pid, "emergency", emergencyTeleport)
     end)
     
+    -- Page navigation at bottom
+    tm.playerUI.AddUILabel(pid, "page_nav", "📖 PAGE 2 / 2")
+    tm.playerUI.AddUIButton(pid, "prev_page", "<< Previous Page", function()
+        switchToPage(pid, 1)
+    end)
+end
+
+-- =============================================================================
+-- UI SETUP
+-- =============================================================================
+
+local function onPlayerJoined(p)
+    local pid = p.playerId
+    
+    -- Initialize player to page 1
+    playerPages[pid] = 1
+    
+    -- Build initial UI (Page 1)
+    buildPage1UI(pid)
 end
 
 -- Hook the join event

@@ -87,7 +87,7 @@ Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertainin
 
 ## Testing and Debugging
 
-Check `D:\Program Files (x86)\Steam\steamapps\common\Trailmakers\mods\MegadrillSeat.log` for runtime errors. The mod includes:
+Check `D:\Program Files (x86)\Steam\steamapps\common\Trailmakers\mods\chaosboardmod.log` for runtime errors. The mod includes:
 - Comprehensive error logging with ability names
 - Status updates showing success/failure of operations
 - No log file means successful loading without errors
