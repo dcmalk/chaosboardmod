@@ -2,6 +2,28 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL UI LIMITATION ⚠️
+
+**STATUS MESSAGE LENGTH LIMIT: 64 CHARACTERS MAX**
+
+The Trailmakers modding API has a strict 64-character limit for status messages passed to `tm.playerUI.SetUIValue(playerId, "status", text)`. Exceeding this limit causes immediate game crashes.
+
+### Rules:
+- **ALWAYS count characters** before using setStatus()
+- **Keep messages under 64 chars** including emojis, spaces, and variable content
+- **Account for dynamic content** like numbers that could grow
+- **Use abbreviations** and short phrases
+- **Test edge cases** (e.g., what if a number gets very large?)
+
+### Safe Examples:
+- ✅ `"🚀 LAUNCHER! " .. count .. " vehicles launched!"` (varies ~35-45 chars)
+- ✅ `"💥 EXPLOSION! " .. num .. " bursts!"` (~25-35 chars)
+- ❌ `"🎆 FIREWORKS SHOW! " .. explosions .. " sky bursts lighting up the night!"` (78+ chars)
+- ❌ `"🏰 BARREL FORTRESS! " .. barrels .. " barrels form protective walls around you!"` (80+ chars)
+
+### Violation History:
+This limit has caused 5+ crashes during development. It is the #1 cause of runtime failures.
+
 ## Project Overview
 
 Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a complete chaos interface with destructive effects, creature spawns, physics manipulation, and environmental control.

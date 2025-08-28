@@ -93,6 +93,7 @@ local PREFABS = {
 
 local cooldowns = {}  -- [playerId_ability] = timestamp
 local pulseShields = {}  -- Track pulse shields for auto-cleanup
+local expandingRings = {}  -- Track expanding shockwave rings for animation
 local playerPages = {}  -- Track which page each player is on (1 or 2)
 
 local function now()
@@ -113,6 +114,104 @@ local function cleanupExpiredPulseShields()
     end
 end
 
+-- Update expanding rings animation system with overlapping rings
+local function updateExpandingRings()
+    local currentTime = now()
+    
+    -- Process each shockwave animation
+    for i = #expandingRings, 1, -1 do
+        local shockwave = expandingRings[i]
+        
+        -- Handle simple delayed spawn system  
+        if shockwave.remainingScales and shockwave.nextSpawnTime then
+            if currentTime >= shockwave.nextSpawnTime then
+                -- Spawn the next ring
+                local nextScale = shockwave.remainingScales[1]
+                local ring = tm.physics.SpawnObject(shockwave.centerPos, PREFABS.MOVE_PUZZLE_START)
+                if ring then
+                    local transform = ring.GetTransform()
+                    if transform and transform.SetScale then
+                        transform.SetScale(nextScale, nextScale, nextScale)
+                    end
+                end
+                
+                -- Remove the spawned scale from remaining scales
+                table.remove(shockwave.remainingScales, 1)
+                
+                -- Check if more rings to spawn
+                if #shockwave.remainingScales > 0 then
+                    shockwave.nextSpawnTime = currentTime + shockwave.delayInterval
+                else
+                    -- All rings spawned, remove from tracking
+                    table.remove(expandingRings, i)
+                end
+            end
+        -- Skip if old data structure (clean it up)
+        elseif not shockwave.lastSpawn or not shockwave.activeRings then
+            -- Clean up old structure
+            if shockwave.object then
+                tm.physics.DespawnObject(shockwave.object)
+            end
+            table.remove(expandingRings, i)
+        else
+            local elapsed = currentTime - shockwave.lastSpawn
+            
+            -- Check if it's time to spawn next ring (every interval)
+            if elapsed >= shockwave.spawnInterval then
+            -- Spawn new ring at current scale
+            local currentScale = shockwave.scaleSteps[shockwave.currentStep]
+            if currentScale then
+                local newRing = tm.physics.SpawnObject(shockwave.position, shockwave.prefab)
+                
+                if newRing then
+                    -- Apply scaling
+                    local transform = newRing.GetTransform()
+                    if transform and transform.SetScale then
+                        transform.SetScale(currentScale, currentScale, currentScale)
+                    end
+                    
+                    -- Add to active rings list with spawn time
+                    table.insert(shockwave.activeRings, {
+                        object = newRing,
+                        spawnTime = currentTime,
+                        scale = currentScale
+                    })
+                end
+                
+                -- Move to next scale step
+                shockwave.currentStep = shockwave.currentStep + 1
+                shockwave.lastSpawn = currentTime
+                
+                -- Check if animation is complete
+                if shockwave.currentStep > #shockwave.scaleSteps then
+                    shockwave.finished = true
+                end
+            end
+        end
+        
+        -- Clean up old rings (keep only newest 2 rings for overlapping effect)
+        while #shockwave.activeRings > 2 do
+            local oldestRing = table.remove(shockwave.activeRings, 1)
+            if oldestRing.object then
+                -- tm.physics.DespawnObject(oldestRing.object)
+            end
+        end
+        
+        -- Remove finished shockwaves and clean up final rings
+        if shockwave.finished then
+            -- Clean up all remaining rings immediately when animation finishes
+            for _, ring in pairs(shockwave.activeRings) do
+                if ring.object then
+                    -- tm.physics.DespawnObject(ring.object)
+                end
+            end
+            table.remove(expandingRings, i)
+        end
+        end  -- Close the else block
+    end  -- Close the for loop
+end  -- Close the function
+
+
 local function canUse(playerId, ability)
     local key = playerId .. "_" .. ability
     local t = now()
@@ -121,6 +220,10 @@ local function canUse(playerId, ability)
 end
 
 local function useAbility(playerId, ability, func)
+    -- Update expanding rings animation system
+    updateExpandingRings()
+    cleanupExpiredPulseShields()
+    
     if not canUse(playerId, ability) then
         tm.playerUI.SetUIValue(playerId, "status", "Cooldown! Wait " .. COOLDOWN_SEC .. "s")
         return false
@@ -130,7 +233,7 @@ local function useAbility(playerId, ability, func)
     local success, error = pcall(func, playerId)
     
     if not success then
-        tm.playerUI.SetUIValue(playerId, "status", "Error: " .. tostring(error))
+        tm.playerUI.SetUIValue(playerId, "status", "❌ Error in " .. ability)
         tm.os.Log("Chaosboard error in " .. ability .. ": " .. tostring(error))
         return false
     end
@@ -305,7 +408,7 @@ local function fireworksShow(playerId)
     -- Celebration finale
     safeAudio(pos, AUDIO.FIREWORKS, AUDIO.CONFETTI, 3.0)
     
-    setStatus(playerId, "🎆 FIREWORKS SHOW! " .. explosions .. " sky bursts lighting up the night!")
+    setStatus(playerId, "🎆 FIREWORKS SHOW! " .. explosions .. " sky bursts!")
 end
 
 local function mineField(playerId)
@@ -486,7 +589,7 @@ local function structureLauncher(playerId)
     end
     
     if launched == 0 then
-        setStatus(playerId, "🚀 STRUCTURE LAUNCHER! No vehicles found to launch (try building something first)")
+        setStatus(playerId, "🚀 STRUCTURE LAUNCHER! No vehicles found")
     else
         setStatus(playerId, "🚀 STRUCTURE LAUNCHER! " .. launched .. " vehicles launched!")
     end
@@ -528,8 +631,9 @@ local function teleportParty(playerId)
 end
 
 local function cleanupAll(playerId)
-    -- Clear our shield tracking first
+    -- Clear our tracking systems first
     pulseShields = {}
+    expandingRings = {}
     
     -- Use safer cleanup approach
     local success, error = pcall(function()
@@ -576,7 +680,7 @@ local function emergencyTeleport(playerId)
     )
     
     tm.players.TeleportPlayerToSpawnPoint(playerId, "emergency_surface", true)
-    setStatus(playerId, "🆘 EMERGENCY TELEPORT! Lifted " .. math.floor(250) .. " units up to safety")
+    setStatus(playerId, "🆘 EMERGENCY TELEPORT! Lifted " .. math.floor(250) .. " units!")
 end
 
 
@@ -616,7 +720,44 @@ local function barrelFortress(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_ACTIVATE, nil, 2.0)
-    setStatus(playerId, "🏰 BARREL FORTRESS! " .. barrels .. " barrels form protective walls around you!")
+    setStatus(playerId, "🏰 BARREL FORTRESS! " .. barrels .. " barrels deployed!")
+end
+
+local function powerCoreHouse(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local crates = 0
+    
+    -- Create a house structure with 4 walls, no roof
+    local wallDistance = 8  -- Distance from player to walls
+    local wallHeight = 4    -- 4 levels high for proper house walls
+    local crateSpacing = 3  -- Space between crates
+    
+    -- Create 4 walls of a square house
+    for wall = 1, 4 do
+        local wallLength = 6  -- 6 crates per wall for bigger house
+        for length = 0, wallLength - 1 do
+            for height = 0, wallHeight - 1 do
+                local cratePos
+                
+                if wall == 1 then  -- North wall
+                    cratePos = tm.vector3.Create(pos.x + (length - 2.5) * crateSpacing, pos.y + 1 + height * 4, pos.z + wallDistance)
+                elseif wall == 2 then  -- East wall  
+                    cratePos = tm.vector3.Create(pos.x + wallDistance, pos.y + 1 + height * 4, pos.z + (length - 2.5) * crateSpacing)
+                elseif wall == 3 then  -- South wall
+                    cratePos = tm.vector3.Create(pos.x + (length - 2.5) * crateSpacing, pos.y + 1 + height * 4, pos.z - wallDistance)
+                else  -- West wall
+                    cratePos = tm.vector3.Create(pos.x - wallDistance, pos.y + 1 + height * 4, pos.z + (length - 2.5) * crateSpacing)
+                end
+                
+                if safeSpawn(cratePos, PREFABS.POWER_CORE_CRATE) then
+                    crates = crates + 1
+                end
+            end
+        end
+    end
+    
+    safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.TELEPORT, 2.0)
+    setStatus(playerId, "🏠 POWERCORE HOUSE! " .. crates .. " power crates form walls!")
 end
 
 local function ringLightShow(playerId)
@@ -657,7 +798,7 @@ local function ringLightShow(playerId)
     end
     
     safeAudio(pos, AUDIO.CONFETTI, AUDIO.SHIELD_ACTIVATE, 3.0)
-    setStatus(playerId, "💫 RING LIGHT SHOW! " .. lights .. " energy rings create a dazzling display!")
+    setStatus(playerId, "💫 RING LIGHT SHOW! " .. lights .. " energy rings!")
 end
 
 local function rainbowTrail(playerId)
@@ -709,7 +850,7 @@ local function rainbowTrail(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
-    setStatus(playerId, "⚡ ENERGY TRAIL! " .. trails .. " energy shields create glowing paths!")
+    setStatus(playerId, "⚡ ENERGY TRAIL! " .. trails .. " energy shields!")
 end
 
 local function crystalGarden(playerId)
@@ -773,7 +914,7 @@ local function crystalGarden(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
-    setStatus(playerId, "💎 CRYSTAL GARDEN! " .. crystals .. " energy crystals form a magnificent garden!")
+    setStatus(playerId, "💎 CRYSTAL GARDEN! " .. crystals .. " crystals!")
 end
 
 local function halfSphereTop(playerId)
@@ -914,7 +1055,7 @@ local function shieldTrap(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.SHIELD_PULSE, 2.5)
-    setStatus(playerId, "🕳️ SHIELD TRAP! " .. spheres .. " shields form a spherical trap around you!")
+    setStatus(playerId, "🕳️ SHIELD TRAP! " .. spheres .. " shields deployed!")
 end
 
 -- =============================================================================
@@ -999,7 +1140,7 @@ local function crystalCavern(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_ACTIVATE, AUDIO.CONFETTI, 2.5)
-    setStatus(playerId, "💎 CRYSTAL CAVERN! " .. crystals .. " beautiful crystals emerge from the ground!")
+    setStatus(playerId, "💎 CRYSTAL CAVERN! " .. crystals .. " crystals!")
 end
 
 local function ringOfFire(playerId)
@@ -1085,7 +1226,7 @@ local function boneGraveyard(playerId)
     end
     
     safeAudio(pos, AUDIO.LANDMINE, nil, 2.0)
-    setStatus(playerId, "💀 BONE GRAVEYARD! " .. bones .. " ancient bones rise from the earth!")
+    setStatus(playerId, "💀 BONE GRAVEYARD! " .. bones .. " bones spawned!")
 end
 
 local function boulderAvalanche(playerId)
@@ -1145,7 +1286,7 @@ local function magneticChaos(playerId)
     end
     
     safeAudio(pos, AUDIO.SHIELD_PULSE, AUDIO.EXPLOSION, 2.5)
-    setStatus(playerId, "🌪️ TOTAL CHAOS! " .. objects .. " random objects create complete mayhem!")
+    setStatus(playerId, "🌪️ TOTAL CHAOS! " .. objects .. " objects spawned!")
 end
 
 local function chaosTrap(playerId)
@@ -1192,7 +1333,7 @@ local function chaosTrap(playerId)
     end
     
     safeAudio(pos, AUDIO.MEGADRILL_ALT, nil, 2.5)
-    setStatus(playerId, "🎪 CHAOS TRAP! " .. traps .. " mechanical traps activate around you!")
+    setStatus(playerId, "🎪 CHAOS TRAP! " .. traps .. " traps activated!")
 end
 
 local function ringShockwave(playerId)
@@ -1227,8 +1368,50 @@ local function ringShockwave(playerId)
     end
     
     safeAudio(pos, AUDIO.MEGADRILL_PULSE, AUDIO.WAVE_RIPPLE, 3.0)
-    setStatus(playerId, "💥 RING SHOCKWAVE! " .. rings .. " expanding rings ripple outward!")
+    setStatus(playerId, "💥 RING SHOCKWAVE! " .. rings .. " rings spawned!")
 end
+
+local function trueShockwave(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local centerPos = tm.vector3.Create(pos.x, pos.y + 2, pos.z)
+    
+    -- Simple direct approach: spawn all rings at once at different scales
+    local scales = {0.5, 1.0, 2.0, 3.0, 4.0, 5.0}
+    local ringsSpawned = 0
+    
+    -- Spawn first ring immediately
+    local firstRing = tm.physics.SpawnObject(centerPos, PREFABS.MOVE_PUZZLE_START)
+    if firstRing then
+        local transform = firstRing.GetTransform()
+        if transform and transform.SetScale then
+            transform.SetScale(scales[1], scales[1], scales[1]) -- 0.5x scale
+            ringsSpawned = 1
+        end
+    end
+    
+    -- Store remaining scales for delayed spawning (if we have more than 1 ring)
+    if #scales > 1 then
+        local remainingScales = {}
+        for i = 2, #scales do
+            table.insert(remainingScales, scales[i])
+        end
+        
+        local delayedSpawnData = {
+            centerPos = centerPos,
+            remainingScales = remainingScales,
+            nextSpawnTime = now() + 2.0, -- 2 second delay
+            delayInterval = 2.0
+        }
+        
+        table.insert(expandingRings, delayedSpawnData)
+    end
+    
+    -- Play audio effects
+    safeAudio(centerPos, AUDIO.MEGADRILL_PULSE, AUDIO.WAVE_RIPPLE, 3.0)
+    
+    setStatus(playerId, "⚡ TRUE SHOCKWAVE! " .. ringsSpawned .. " rings spawned!")
+end
+
 
 -- =============================================================================
 -- NEW CUSTOM EFFECTS
@@ -1279,7 +1462,7 @@ local function chirpoArmy(playerId)
     safeAudio(pos, AUDIO.CHIRPO_TALK, AUDIO.CHIRPO_AI, 2.5)
     safeAudio(pos, AUDIO.CHIRPO_TYPE, nil, 1.5)
     
-    setStatus(playerId, "🐤 CHIRPO ARMY! " .. chirpos .. " colorful Chirpos assemble on the battlefield!")
+    setStatus(playerId, "🐤 CHIRPO ARMY! " .. chirpos .. " Chirpos deployed!")
 end
 
 local function flamethrowerInferno(playerId)
@@ -1429,9 +1612,9 @@ local function stationaryChirpo(playerId)
     safeAudio(pos, AUDIO.CHIRPO_TALK, AUDIO.CHIRPO_TYPE, 2.0)
     
     if chirpos > 0 then
-        setStatus(playerId, "🤖 STATIONARY CHIRPO! A helpful Chirpo unit has been deployed!")
+        setStatus(playerId, "🤖 CHIRPO SPACESHIP! A helpful Chirpo unit has been deployed!")
     else
-        setStatus(playerId, "🤖 STATIONARY CHIRPO! Chirpo failed to spawn")
+        setStatus(playerId, "🤖 CHIRPO SPACESHIP! Chirpo failed to spawn")
     end
 end
 
@@ -1466,7 +1649,7 @@ local function spawnShieldWithSize(playerId, scale, sizeName)
     local transform = shield.GetTransform()
     if transform and transform.SetScale then
         transform.SetScale(scale, scale, scale)
-        setStatus(playerId, "🛡️ " .. sizeName .. " SHIELD deployed! " .. math.floor(center.y - pPos.y) .. " units above you")
+        setStatus(playerId, "🛡️ " .. sizeName .. " SHIELD deployed!")
     else
         setStatus(playerId, "🛡️ " .. sizeName .. " shield spawned at default size")
     end
@@ -1545,6 +1728,10 @@ buildPage1UI = function(playerId)
         useAbility(pid, "barrel_fortress", barrelFortress)
     end)
     
+    tm.playerUI.AddUIButton(pid, "powercore_house", "🏠 PowerCore House", function()
+        useAbility(pid, "powercore_house", powerCoreHouse)
+    end)
+    
     tm.playerUI.AddUIButton(pid, "fireworks", "🎆 Fireworks Show", function()
         useAbility(pid, "fireworks", fireworksShow)
     end)
@@ -1584,7 +1771,7 @@ buildPage1UI = function(playerId)
         useAbility(pid, "timeline_pod", timelinePodLanding)
     end)
     
-    tm.playerUI.AddUIButton(pid, "stationary_chirpo", "🤖 Stationary Chirpo", function()
+    tm.playerUI.AddUIButton(pid, "stationary_chirpo", "🤖 Chirpo Spaceship", function()
         useAbility(pid, "stationary_chirpo", stationaryChirpo)
     end)
     
@@ -1705,6 +1892,10 @@ buildPage2UI = function(playerId)
     
     tm.playerUI.AddUIButton(pid, "ring_shockwave", "💥 Ring Shockwave", function()
         useAbility(pid, "ring_shockwave", ringShockwave)
+    end)
+    
+    tm.playerUI.AddUIButton(pid, "true_shockwave", "⚡ True Shockwave", function()
+        useAbility(pid, "true_shockwave", trueShockwave)
     end)
     
     tm.playerUI.AddUIButton(pid, "flamethrower_inferno", "🔥 Fire Inferno", function()
