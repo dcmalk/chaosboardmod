@@ -1,6 +1,6 @@
 # Chaosboard
 
-A Trailmakers mod providing 16+ chaos effects for multiplayer entertainment.
+A Trailmakers mod providing 38+ chaos effects for multiplayer entertainment, organized across a 3-page UI.
 
 ## Features
 

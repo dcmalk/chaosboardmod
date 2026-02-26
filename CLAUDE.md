@@ -26,11 +26,11 @@ This limit has caused 5+ crashes during development. It is the #1 cause of runti
 
 ## Project Overview
 
-Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a complete chaos interface with destructive effects, creature spawns, physics manipulation, and environmental control.
+Chaosboard is a comprehensive Trailmakers game mod that provides 38+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a 3-page chaos interface with destructive effects, creature spawns, physics manipulation, environmental control, shields, shockwaves, and Frozen Tracks DLC content.
 
 ## Architecture
 
-- **main.lua**: Complete chaos mod implementation (~500 lines) using the Trailmakers modding API (tm.*). Features modular effect functions, universal cooldown system, error handling with pcall, and organized UI categories.
+- **main.lua**: Complete chaos mod implementation (~2400 lines) using the Trailmakers modding API (tm.*). Features modular effect functions, universal cooldown system, error handling with pcall, and a 3-page organized UI.
 - **info.json**: Updated mod metadata reflecting the new Chaosboard functionality and feature set.
 - **docs/**: Reference documentation for the Trailmakers modding API, including:
   - **trailmakers_docs.lua**: Complete API type definitions with detailed documentation
@@ -46,36 +46,23 @@ Chaosboard is a comprehensive Trailmakers game mod that provides 16+ entertainin
 
 ## Key Components
 
-### Enhanced Megadrill Pulse System
-- **True Force Push**: Distance-based force calculation affecting all players within 50-unit radius
-- **Player Elimination**: Kills players not in vehicles (authentic boss battle behavior)
-- **Directional Physics**: Pushes players away from triggerer with upward component
-- **Visual/Audio**: Uses authentic Megadrill explosion and sound effects
+### ShockwaveManager
+Inlined, frame-rate-independent animated shockwave system. Spawns rings of explosions outward from a point over time using a configurable scale sequence and interval. Handles auto-cleanup of completed shockwaves after a delay.
 
-### Effect Categories
-1. **Destruction Effects** (5 effects):
-   - Megadrill Pulse: Force push + player elimination
-   - Barrel Rain: 50 falling barrels (30% explosive)
-   - Fireworks Show: 25 varied explosions with authentic sounds
-   - Mine Field: 30 landmines scattered around area
-   - Gravity Bomb: Extreme gravity for dramatic falls
+### Effect Categories (3-page UI)
 
-2. **Creature Spawns** (3 effects):
-   - Whale Rain: 5 whales dropped from sky with whale sounds
-   - Animal Swarm: 20 mixed hostile creatures (chasers, runners, nugget thieves)
-   - Sheep Invasion: 15 peaceful sheep for comedic effect
+**Page 1 — Core Chaos:**
+1. **Destruction** (7 effects): Barrel Rain, Barrel Fortress, PowerCore House, Fireworks Show, Mine Field, Gravity Bomb, Launch All Vehicles
+2. **Creatures** (6 effects): Whale Rain, Animal Swarm, Sheep Invasion, Chirpo Army, Timeline Pod Landing, Chirpo Spaceship
+3. **Physics** (5 effects): Slow Motion (0.2x), Speed Up (2.0x), Low Gravity (3 units vs normal 14), Reverse Gravity (-8 units), Reset Physics
 
-3. **Physics Chaos** (5 effects):
-   - Slow Motion: 0.2x time scale
-   - Speed Up: 2.0x time scale
-   - Low Gravity: 3 gravity units (vs normal 14)
-   - Reverse Gravity: -8 gravity (everything falls up!)
-   - Structure Launcher: Massive upward force on all vehicles
+**Page 2 — Advanced Effects:**
+4. **Shields** (10 effects): Ground Shield (Megadrill Pulse), Small/Medium/Large Sky Shields, Ring Light Show, Energy Trail, Crystal Garden, Top Half-Sphere, Shield Trap, Mega Shield Trap
+5. **Chaos Effects** (13 effects): Poison Rain, Snowball Fight, Crystal Cavern, Ring of Fire, Bone Graveyard, Boulder Avalanche, Total Chaos, Chaos Trap, Ring Shockwave, True Shockwave, Fire Inferno, Carpet Bombing, Flame Mandala
+6. **Controls** (4 effects): Cleanup All, Cleanup Shields, Teleport Party, Emergency Teleport
 
-4. **Environmental/Control** (3 effects):
-   - Teleport Party: Attempts to bring all players to triggerer
-   - Cleanup All: Removes all spawned objects
-   - Reset Physics: Restores normal gravity and time
+**Page 3 — Frozen Tracks DLC:**
+7. **DLC Content** (6 effects): Buildings, LED Signs, Race Track, Environment, Infrastructure, Special Objects
 
 ### Core Systems
 - **Universal Cooldown**: 2-second cooldown across all abilities prevents spam
@@ -135,5 +122,6 @@ Key constants at top of main.lua:
 ## File Structure
 
 - Static data goes in `data_static/` (read-only, uploaded to Steam Workshop)
-- Dynamic data goes in `data_dynamic_willNotBeUploadedToWorkshop/` (read/write, local only)
+- Dynamic data goes in `data_dynamic/` (read/write, persists between sessions — used by `tm.os.WriteAllText_Dynamic`)
+- Local dev scratch files go in `local/` (gitignored, not uploaded to Workshop): spawnable reference dumps, etc.
 - Documentation and examples in `docs/` folder provide comprehensive API reference
