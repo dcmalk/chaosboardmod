@@ -26,7 +26,7 @@ This limit has caused 5+ crashes during development. It is the #1 cause of runti
 
 ## Project Overview
 
-Chaosboard is a comprehensive Trailmakers game mod that provides 38+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a 3-page chaos interface with destructive effects, creature spawns, physics manipulation, environmental control, shields, shockwaves, and Frozen Tracks DLC content.
+Chaosboard is a comprehensive Trailmakers game mod that provides 41+ entertaining effects for multiplayer chaos and fun. Originally evolved from MegadrillSeat, it now features a 3-page chaos interface with destructive effects, creature spawns, physics manipulation, environmental control, shields, shockwaves, and Frozen Tracks DLC content.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ Inlined, frame-rate-independent animated shockwave system. Spawns rings of explo
 ### Effect Categories (3-page UI)
 
 **Page 1 — Core Chaos:**
-1. **Destruction** (7 effects): Barrel Rain, Barrel Fortress, PowerCore House, Fireworks Show, Mine Field, Gravity Bomb, Launch All Vehicles
+1. **Destruction** (10 effects): Barrel Rain, Barrel Fortress, PowerCore House, Fireworks Show, Mine Field, Mine Grid (7×7), Mine Sunflower (golden angle phyllotaxis), Mine Chandelier (overhead dome), Gravity Bomb, Launch All Vehicles
 2. **Creatures** (6 effects): Whale Rain, Animal Swarm, Sheep Invasion, Chirpo Army, Timeline Pod Landing, Chirpo Spaceship
 3. **Physics** (5 effects): Slow Motion (0.2x), Speed Up (2.0x), Low Gravity (3 units vs normal 14), Reverse Gravity (-8 units), Reset Physics
 

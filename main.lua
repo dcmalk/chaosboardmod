@@ -538,6 +538,84 @@ local function mineField(playerId)
     setStatus(playerId, "💣 EXPLOSIVE FIELD! Placed " .. mines .. " explosive objects")
 end
 
+local function mineGrid(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local mines = 0
+    local GRID_SIZE = 7
+    local SPACING = 3.5
+    local offset = (GRID_SIZE - 1) * SPACING / 2  -- center grid on player
+
+    for row = 0, GRID_SIZE - 1 do
+        for col = 0, GRID_SIZE - 1 do
+            local minePos = tm.vector3.Create(
+                pos.x + (col * SPACING) - offset,
+                pos.y + 0.5,
+                pos.z + (row * SPACING) - offset
+            )
+            if safeSpawn(minePos, PREFABS.LANDMINE, PREFABS.BARREL) then
+                mines = mines + 1
+            end
+        end
+    end
+
+    safeAudio(pos, AUDIO.LANDMINE, nil, 1.5)
+    setStatus(playerId, "🌸 MINE GRID! " .. mines .. " mines, 7x7!")
+end
+
+local function mineSunflower(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local mines = 0
+    local GOLDEN_ANGLE = 2.39996  -- 137.508 degrees in radians (phyllotaxis)
+    local SCALE = 1.8             -- controls spread of the spiral
+    local COUNT = 42
+
+    for i = 1, COUNT do
+        local angle = i * GOLDEN_ANGLE
+        local radius = SCALE * math.sqrt(i)
+        local minePos = tm.vector3.Create(
+            pos.x + math.cos(angle) * radius,
+            pos.y + 0.5,
+            pos.z + math.sin(angle) * radius
+        )
+        if safeSpawn(minePos, PREFABS.LANDMINE, PREFABS.BARREL) then
+            mines = mines + 1
+        end
+    end
+
+    safeAudio(pos, AUDIO.LANDMINE, nil, 1.5)
+    setStatus(playerId, "🌻 SUNFLOWER! " .. mines .. " flower mines!")
+end
+
+local function mineChandelier(playerId)
+    local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
+    local mines = 0
+
+    -- Rings overhead: widens as it descends, like a chandelier
+    local rings = {
+        { height = 22, count = 6,  radius = 4  },
+        { height = 16, count = 10, radius = 9  },
+        { height = 10, count = 14, radius = 13 },
+        { height = 5,  count = 12, radius = 10 },
+    }
+
+    for _, ring in ipairs(rings) do
+        for i = 0, ring.count - 1 do
+            local angle = (i / ring.count) * 2 * math.pi
+            local minePos = tm.vector3.Create(
+                pos.x + math.cos(angle) * ring.radius,
+                pos.y + ring.height,
+                pos.z + math.sin(angle) * ring.radius
+            )
+            if safeSpawn(minePos, PREFABS.LANDMINE, PREFABS.BARREL) then
+                mines = mines + 1
+            end
+        end
+    end
+
+    safeAudio(pos, AUDIO.LANDMINE, nil, 2.0)
+    setStatus(playerId, "💎 CHANDELIER! " .. mines .. " mines above!")
+end
+
 local function gravityBomb(playerId)
     local pos = tm.players.GetPlayerTransform(playerId).GetPosition()
     
@@ -2136,7 +2214,19 @@ buildPage1UI = function(playerId)
     tm.playerUI.AddUIButton(pid, "mines", "💣 Mine Field", function()
         useAbility(pid, "mines", mineField)
     end)
-    
+
+    tm.playerUI.AddUIButton(pid, "mine_grid", "🌸 Mine Grid", function()
+        useAbility(pid, "mine_grid", mineGrid)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "mine_sunflower", "🌻 Mine Sunflower", function()
+        useAbility(pid, "mine_sunflower", mineSunflower)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "mine_chandelier", "💎 Mine Chandelier", function()
+        useAbility(pid, "mine_chandelier", mineChandelier)
+    end)
+
     tm.playerUI.AddUIButton(pid, "gravbomb", "🌍 Gravity Bomb", function()
         useAbility(pid, "gravbomb", gravityBomb)
     end)

@@ -1,8 +1,8 @@
 {
   "name": "Chaosboard",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "author": "daelan01",
-  "description": "Ultimate chaos and entertainment mod! Features 38+ fun effects: Chirpo armies, mega shield traps, flamethrower infernos, Megadrill pulse, barrel rain, whale summoning, fireworks shows, gravity/time control, creature spawns, and much more! Perfect for multiplayer mayhem.",
+  "description": "Ultimate chaos and entertainment mod! Features 41+ fun effects: Mine grids, sunflower patterns, chandelier traps, Chirpo armies, mega shield traps, flamethrower infernos, Megadrill pulse, barrel rain, whale summoning, fireworks shows, gravity/time control, creature spawns, and much more!",
   "entry": "main.lua",
   "tags": ["soundboard", "fun", "megadrill", "chaos", "multiplayer", "effects", "chirpo", "flames"]
 }
