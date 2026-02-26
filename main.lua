@@ -2192,49 +2192,49 @@ buildPage1UI = function(playerId)
     tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOSBOARD === 🎛️")
     tm.playerUI.AddUIText(pid, "status", "Ready for chaos!", nil)
     
-    -- === DESTRUCTION ROW ===
-    tm.playerUI.AddUILabel(pid, "destruction_label", "💥 DESTRUCTION:")
-    
-    tm.playerUI.AddUIButton(pid, "barrels", "🛢️ Barrel Rain", function()
-        useAbility(pid, "barrels", barrelRain)
-    end)
-    
-    tm.playerUI.AddUIButton(pid, "barrel_fortress", "🏰 Barrel Fortress", function()
-        useAbility(pid, "barrel_fortress", barrelFortress)
-    end)
-    
-    tm.playerUI.AddUIButton(pid, "powercore_house", "🏠 PowerCore House", function()
-        useAbility(pid, "powercore_house", powerCoreHouse)
-    end)
-    
-    tm.playerUI.AddUIButton(pid, "fireworks", "🎆 Fireworks Show", function()
-        useAbility(pid, "fireworks", fireworksShow)
-    end)
-    
-    tm.playerUI.AddUIButton(pid, "mines", "💣 Mine Field", function()
-        useAbility(pid, "mines", mineField)
+    -- === SHIELDS ROW ===
+    tm.playerUI.AddUILabel(pid, "shields_label", "🛡️ SHIELDS:")
+
+    tm.playerUI.AddUIButton(pid, "megapulse", "🛡️ Ground Shield", function()
+        useAbility(pid, "megapulse", createMegadrillPulse)
     end)
 
-    tm.playerUI.AddUIButton(pid, "mine_grid", "🌸 Mine Grid", function()
-        useAbility(pid, "mine_grid", mineGrid)
+    tm.playerUI.AddUIButton(pid, "shield_small", "🛡️ Small Sky Shield", function()
+        useAbility(pid, "shield_small", spawnSmallShield)
     end)
 
-    tm.playerUI.AddUIButton(pid, "mine_sunflower", "🌻 Mine Sunflower", function()
-        useAbility(pid, "mine_sunflower", mineSunflower)
+    tm.playerUI.AddUIButton(pid, "shield_medium", "🛡️ Medium Sky Shield", function()
+        useAbility(pid, "shield_medium", spawnMediumShield)
     end)
 
-    tm.playerUI.AddUIButton(pid, "mine_chandelier", "💎 Mine Chandelier", function()
-        useAbility(pid, "mine_chandelier", mineChandelier)
+    tm.playerUI.AddUIButton(pid, "shield_large", "🛡️ Large Sky Shield", function()
+        useAbility(pid, "shield_large", spawnLargeShield)
     end)
 
-    tm.playerUI.AddUIButton(pid, "gravbomb", "🌍 Gravity Bomb", function()
-        useAbility(pid, "gravbomb", gravityBomb)
+    tm.playerUI.AddUIButton(pid, "ring_show", "💫 Ring Light Show", function()
+        useAbility(pid, "ring_show", ringLightShow)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "launcher", "🚀 Launch All Vehicles", function()
-        useAbility(pid, "launcher", structureLauncher)
+
+    tm.playerUI.AddUIButton(pid, "rainbow_trail", "⚡ Energy Trail", function()
+        useAbility(pid, "rainbow_trail", rainbowTrail)
     end)
-    
+
+    tm.playerUI.AddUIButton(pid, "crystal_garden", "💎 Crystal Garden", function()
+        useAbility(pid, "crystal_garden", crystalGarden)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "half_sphere_top", "🌙 Top Half-Sphere", function()
+        useAbility(pid, "half_sphere_top", halfSphereTop)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "shield_trap", "🕳️ Shield Trap", function()
+        useAbility(pid, "shield_trap", shieldTrap)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "mega_shield_trap", "🌐 Mega Shield Trap", function()
+        useAbility(pid, "mega_shield_trap", megaShieldTrap)
+    end)
+
     -- === CREATURES ROW ===
     tm.playerUI.AddUILabel(pid, "creatures_label", "🐋 CREATURES:")
     
@@ -2318,49 +2318,49 @@ buildPage2UI = function(playerId)
     tm.playerUI.AddUILabel(pid, "title", "🎛️ === CHAOSBOARD === 🎛️")
     tm.playerUI.AddUIText(pid, "status", "Ready for chaos!", nil)
     
-    -- === SHIELDS ROW ===
-    tm.playerUI.AddUILabel(pid, "shields_label", "🛡️ SHIELDS:")
-    
-    tm.playerUI.AddUIButton(pid, "megapulse", "🛡️ Ground Shield", function()
-        useAbility(pid, "megapulse", createMegadrillPulse)
+    -- === DESTRUCTION ROW ===
+    tm.playerUI.AddUILabel(pid, "destruction_label", "💥 DESTRUCTION:")
+
+    tm.playerUI.AddUIButton(pid, "barrels", "🛢️ Barrel Rain", function()
+        useAbility(pid, "barrels", barrelRain)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "shield_small", "🛡️ Small Sky Shield", function()
-        useAbility(pid, "shield_small", spawnSmallShield)
+
+    tm.playerUI.AddUIButton(pid, "barrel_fortress", "🏰 Barrel Fortress", function()
+        useAbility(pid, "barrel_fortress", barrelFortress)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "shield_medium", "🛡️ Medium Sky Shield", function()
-        useAbility(pid, "shield_medium", spawnMediumShield)
+
+    tm.playerUI.AddUIButton(pid, "powercore_house", "🏠 PowerCore House", function()
+        useAbility(pid, "powercore_house", powerCoreHouse)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "shield_large", "🛡️ Large Sky Shield", function()
-        useAbility(pid, "shield_large", spawnLargeShield)
+
+    tm.playerUI.AddUIButton(pid, "fireworks", "🎆 Fireworks Show", function()
+        useAbility(pid, "fireworks", fireworksShow)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "ring_show", "💫 Ring Light Show", function()
-        useAbility(pid, "ring_show", ringLightShow)
+
+    tm.playerUI.AddUIButton(pid, "mines", "💣 Mine Field", function()
+        useAbility(pid, "mines", mineField)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "rainbow_trail", "⚡ Energy Trail", function()
-        useAbility(pid, "rainbow_trail", rainbowTrail)
+
+    tm.playerUI.AddUIButton(pid, "mine_grid", "🌸 Mine Grid", function()
+        useAbility(pid, "mine_grid", mineGrid)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "crystal_garden", "💎 Crystal Garden", function()
-        useAbility(pid, "crystal_garden", crystalGarden)
+
+    tm.playerUI.AddUIButton(pid, "mine_sunflower", "🌻 Mine Sunflower", function()
+        useAbility(pid, "mine_sunflower", mineSunflower)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "half_sphere_top", "🌙 Top Half-Sphere", function()
-        useAbility(pid, "half_sphere_top", halfSphereTop)
+
+    tm.playerUI.AddUIButton(pid, "mine_chandelier", "💎 Mine Chandelier", function()
+        useAbility(pid, "mine_chandelier", mineChandelier)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "shield_trap", "🕳️ Shield Trap", function()
-        useAbility(pid, "shield_trap", shieldTrap)
+
+    tm.playerUI.AddUIButton(pid, "gravbomb", "🌍 Gravity Bomb", function()
+        useAbility(pid, "gravbomb", gravityBomb)
     end)
-    
-    tm.playerUI.AddUIButton(pid, "mega_shield_trap", "🌐 Mega Shield Trap", function()
-        useAbility(pid, "mega_shield_trap", megaShieldTrap)
+
+    tm.playerUI.AddUIButton(pid, "launcher", "🚀 Launch All Vehicles", function()
+        useAbility(pid, "launcher", structureLauncher)
     end)
-    
+
     -- === CHAOS EFFECTS ROW ===
     tm.playerUI.AddUILabel(pid, "chaos_label", "🌪️ CHAOS EFFECTS:")
     
