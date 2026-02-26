@@ -1,2 +1,5 @@
 # Local dev scratch files (spawnable dumps, etc.) - not for Workshop upload
 local/
+
+# Claude Code local settings
+.claude/
