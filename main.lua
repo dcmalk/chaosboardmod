@@ -2285,6 +2285,25 @@ buildPage1UI = function(playerId)
         useAbility(pid, "reset", resetPhysics)
     end)
     
+    -- === CONTROLS ROW ===
+    tm.playerUI.AddUILabel(pid, "control_label", "🔧 CONTROLS:")
+
+    tm.playerUI.AddUIButton(pid, "cleanup", "🧹 Cleanup All", function()
+        useAbility(pid, "cleanup", cleanupAll)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "cleanup_shields", "🛡️ Cleanup Shields", function()
+        useAbility(pid, "cleanup_shields", cleanupShieldsOnly)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "teleport", "🌀 Teleport Party", function()
+        useAbility(pid, "teleport", teleportParty)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "emergency", "🆘 Emergency Teleport", function()
+        useAbility(pid, "emergency", emergencyTeleport)
+    end)
+
     -- Page navigation at bottom
     tm.playerUI.AddUILabel(pid, "page_nav", "📖 PAGE 1 / 3")
     tm.playerUI.AddUIButton(pid, "next_page", ">> Next Page", function()
@@ -2465,6 +2484,25 @@ buildPage3UI = function(playerId)
 
     tm.playerUI.AddUIButton(pid, "spawn_special", "✨ Special Objects", function()
         useAbility(pid, "spawn_special", spawnSpecialObjects)
+    end)
+
+    -- === CONTROLS ROW ===
+    tm.playerUI.AddUILabel(pid, "control_label", "🔧 CONTROLS:")
+
+    tm.playerUI.AddUIButton(pid, "cleanup", "🧹 Cleanup All", function()
+        useAbility(pid, "cleanup", cleanupAll)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "cleanup_shields", "🛡️ Cleanup Shields", function()
+        useAbility(pid, "cleanup_shields", cleanupShieldsOnly)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "teleport", "🌀 Teleport Party", function()
+        useAbility(pid, "teleport", teleportParty)
+    end)
+
+    tm.playerUI.AddUIButton(pid, "emergency", "🆘 Emergency Teleport", function()
+        useAbility(pid, "emergency", emergencyTeleport)
     end)
 
     -- Page navigation at bottom
